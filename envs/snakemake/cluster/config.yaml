@@ -1,0 +1,16 @@
+# This is the working profile for the HIVIA Project
+
+# TODO set path to working directory
+directory: output/
+# TODO set path to log directory
+drmaa-log-dir: output/logs/
+drmaa: " {cluster.clusterSpec}"
+jobname: "SMK_{jobid}_{name}"
+# TODO set path to cluster_json file
+cluster-config: envs/snakemake/cluster/cluster.json
+local-cores: 2
+jobs: 200
+latency-wait: 240
+keep-going: True
+rerun-incomplete: True
+restart-times: 2

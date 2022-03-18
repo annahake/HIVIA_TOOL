@@ -1,0 +1,27 @@
+name: HIVIA_eval
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - r-base
+  - r-essentials
+# needed for R Markdown
+  - pandoc
+  - texlive-core
+# precision-recall/auc performance calculation
+  - r-prroc
+  - r-ggmcmc
+  # creating flexdashboards
+  - r-flexdashboard
+  # using interactive plots
+  - r-plotly
+  # correlation method for data frames with p-values
+  - r-psych
+  - r-brms
+  - r-emmeans
+  - r-tidybayes
+  - r-sjstats
+  - r-bayestestr
+  - r-xlsx
+  - r-optparse

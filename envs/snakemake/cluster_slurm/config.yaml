@@ -1,0 +1,10 @@
+#add your output directory where the results should be stored
+directory: output/
+restart-times: 3
+jobs: 200
+local-cores: 1
+keep-going: True
+rerun-incomplete: True
+latency-wait: 60
+#TODO: add your email account for error notification --mail-type=FAIL --mail-user
+cluster: "sbatch -p cpu20 --mem=8000 -t 2-0:00:00 -o logs_slurm/{rule}_{wildcards}_output.txt -e logs_slurm/{rule}_{wildcards}_error.txt "

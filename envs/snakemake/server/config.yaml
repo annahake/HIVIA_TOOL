@@ -1,0 +1,10 @@
+# This is the working profile for the HIVIA Project
+
+
+directory: output/
+jobname: "SMK_{jobid}_{name}"
+jobs: 40
+latency-wait: 100
+keep-going: True
+rerun-incomplete: True
+restart-times: 2

@@ -1,0 +1,188 @@
+# Run settings:
+run_id: 'HIVIA_HLAboth'
+notify: True
+#TODO add email
+notify_email: 
+include:
+  prep: TRUE
+  final_models: TRUE
+  CV_model: TRUE
+script_dir: ./scripts
+# Global settings
+proteins: 
+- gag
+hla_freq_cutoff: 
+- "0.01"
+saav_freq_cutoff: 
+- "0.01"
+cd4_cutoff: 
+- 500
+seed: 100
+# API settings
+api:
+  lanl_align: "./prep/sequence_data/lanl_align_api.R"
+  comet: './scripts/prep/sequence_data/comet_api.R'
+  codon_align: "./scripts/prep/sequence_data/codon_align_api.R"
+# path to data storage
+data:
+# TODO add paths to raw data 
+  raw:
+    env:
+    gag:
+  interim: data/interim/
+  processed: data/processed/
+files:
+  excluded: 'output/log/excluded'
+# RULE SETTINGS:
+# settings for getting the reference sequence using lanl_align_api and get_reference_sequence.R
+aa_ref_seq:
+  database: protein
+  id:
+    nucleotide: '1906382'
+    protein: 
+      env: 'AAB50262.1'
+      gag: 'AAB50258.1'
+#  start:
+#    env: 6225
+#    gag: 790
+#  end: 
+#    env: 8795
+#    gag: 2292
+ref_seq:
+  # web tool settings
+  alignment_type: "CON"
+  suborganism: "HIV1"
+  subtype: "All"
+  region_definition: "predefined"
+  region:
+    env: "ENV"
+    gag: "GAG"
+  basetype: "DNA"
+  year: "2004"
+  format: "fasta"
+  # script settings
+  #
+  # define reference sequence
+  query: "CONSENSUS_C"
+  # set output filename suffixes
+  ref_seq_fname: "refseq.fa"
+  align_fname: "lanl_align.fa"
+# settings for fetching all raw sequences using fetch_sequences.R
+#TODO change path to coreceptor input
+g2p_coreceptor:
+  input: 'data/interim/env10percent_consensus_nt_sequences_selected.fasta'
+subtype_seq:
+  output_fname_suffix: '_subtype'
+  output_fname_extension: '.tsv'
+select_seq:
+  output_fname_suffix: '_selected'
+  output_fname_extension: '.fasta'
+  outlier_cutoff: 0.95
+  outlier_category: 
+    char: 'n'
+    subtype: 'C'
+align_seq:
+  output_fname_suffix: '_aligned'
+  output_fname_extension: '.fasta'
+codon_align:
+  frame: "program"
+  compensating_num: 5
+  input_type: file
+  output_format: "fasta"
+  output_seqs_type: "all"
+# rule create_phylogeny/convert_fasta_to_phylip  
+phylo:
+  tool:
+    - phyml
+    - raxml
+  seqtype:
+    - 'DNA'
+    - 'AA'
+  tree_name:
+    phyml: '_phyml_tree.txt'
+    raxml: 'RAxML_bestTree'
+phyml:
+  format: "interleaved"
+  model: "GTR"
+raxml:
+  model: "GTRGAMMA"
+modeling:
+  rand_nr: 100
+  rand: 
+  - 'rand'
+  - 'norand'
+  upsampling: FALSE
+  method:
+  - brms
+  model:
+  - "null_clin_rand"
+  - "full"
+  fixed:
+    hlaboth_clin:
+      - age
+      - sex
+      - coarse_race
+    hla1_clin:
+      - age
+      - sex
+      - coarse_race
+    hla2_clin:
+      - age
+      - sex
+      - coarse_race
+    hla1: 
+      - "NULL"
+  random: patient_id
+  outcome: "y"
+  prior:
+    null_clin_rand: 
+      name: horseshoe
+      par_ratio: 0.1
+    full: 
+      name: horseshoe
+      par_ratio: 0.1
+  kfold: 10
+  adapt_delta: 0.99
+  seed:
+  - '100'
+hla:
+  hlaboth_clin:
+    - A.ACC.I
+    - A.ACC.II
+    - B.ACC.I
+    - B.ACC.II
+    - C.ACC.I
+    - C.ACC.II
+    - DRB.ACC.I
+    - DRB.ACC.II
+    - DQB.ACC.I
+    - DQB.ACC.II
+    - DPB.ACC.I
+    - DPB.ACC.II
+  hla1_clin:
+    - A.ACC.I
+    - A.ACC.II
+    - B.ACC.I
+    - B.ACC.II
+    - C.ACC.I
+    - C.ACC.II
+  hla1:
+    - A.ACC.I
+    - A.ACC.II
+    - B.ACC.I
+    - B.ACC.II
+    - C.ACC.I
+    - C.ACC.II
+  hla2_clin:
+    - DRB.ACC.I
+    - DRB.ACC.II
+    - DQB.ACC.I
+    - DQB.ACC.II
+    - DPB.ACC.I
+    - DPB.ACC.II
+model_versions:
+- hlaboth_clin
+#- hla1_clin
+#- hla1
+#- hla2_clin
+outcome_type: 'categorical'

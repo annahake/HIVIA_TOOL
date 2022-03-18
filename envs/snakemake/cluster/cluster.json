@@ -1,0 +1,8 @@
+# This is a json script defining how jobs on the cluster are submitted. 
+{
+  "__default__": {
+    "clusterSpec": " -V -S /bin/bash -l h_vmem=12G,mem_free=8G",
+    "jobName": "__defaultSpec__"
+  }
+}
+

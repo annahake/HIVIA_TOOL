@@ -1,0 +1,2 @@
+# This is the command to start snakemake on the cluster
+snakemake -n --configfile config.yml --profile envs/snakemake/cluster --nolock

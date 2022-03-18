@@ -1,0 +1,249 @@
+# Copyright 2019 Anna Hake.
+# Licensed under the MIT license (http://opensource.org/licenses/MIT)
+# This file may not be copied, modified, or distributed
+# except according to those terms. 
+
+#from snakemake.utils import validate
+import pandas as pd
+import glob
+import os.path
+import numpy
+from pathlib import Path
+
+# email notification
+onsuccess:
+    body_text = "Nothing to report\n{log}"
+    if config['notify']:
+        shell('mail -s "[Snakemake] SUCCESS - HIVIA" {} <<< "{}"'.format(config['notify_email'], body_text))
+
+onerror:
+    if config['notify']:
+      shell('mail -s "[Snakemake] ERROR - HIVIA" {} < {{log}}'.format(config['notify_email']))
+
+###
+# define variables
+###
+
+# Name of the run
+NAME = config['name']
+# proteins: gag, env
+PROTEINS = config["proteins"]
+# model: per-site models to build (full and null model)
+MODELS = config["models"]
+# CD4 cutoff in the study cohort
+CD4 = config['cd4_cutoff']
+# model version: hla1, hla2, hlaboth
+MODEL_VERSIONS = config["model_versions"]
+# categorical vs binomial
+OUTCOME_TYPE = config['outcome_type']
+# 0.01
+SAAV_CUTOFF = config["saav_freq_cutoff"]
+# 0.01
+HLA_CUTOFF = config["hla_freq_cutoff"]
+# seeds: 100, 42
+SEEDS = config["seed"]
+
+
+# TODO: align sequences to training set?
+# NOTE: we don't align the test data to the training data but expect that test data is aligned to subtype C p24 protein. 
+
+# spreadsheet with the frequent variant sites
+pred_sites=pd.read_csv(config['pred_sites']).set_index("sites", drop=False)
+
+rule all:
+  input:
+    expand(config['output_dir'] + '{name}/{protein}/{outcome_type}/{model_version}/saav_freq_{saav_cutoff}/hla_freq_{hla_cutoff}/cd4_cutoff{cd4}/seed_{seed}/adapt.csv',protein=PROTEINS, seed=SEEDS, cd4=CD4, model_version=MODEL_VERSIONS, outcome_type = OUTCOME_TYPE, saav_cutoff = SAAV_CUTOFF, hla_cutoff = HLA_CUTOFF, name = NAME)
+
+
+# preprocess test data
+
+rule subtype_seqs:
+	input:
+		sequences = config['input']['seq']
+	output: 
+		subtypes = config['output_dir'] +'{name}/data/seqs/{protein}/COMET_subtypes.tsv'
+	params:
+		api=config['api']['comet'],
+		script_dir = config['script_dir']
+	shell:
+		"Rscript {params.script_dir}/prep/sequence_data/subtype_sequences.R -i {input.sequences} -o {output.subtypes} -a {params.api}"
+
+rule clean_subtypes:
+  input:
+    subtypes = rules.subtype_seqs.output.subtypes
+  output:
+    cleaned_subtypes = config['output_dir'] +'{name}/data/seqs/{protein}/COMET_subtypes_cleaned.csv'
+  params:
+    script_dir = config['script_dir']
+  shell:
+    'Rscript {params.script_dir}/prep/sequence_data/clean_subtype_table.R -s {input.subtypes}'
+    
+# select only subtype C? give warning?
+rule select_seq:
+  input:
+    sequences =  config['input']['seq'] ,
+    cleaned_subtypes = rules.clean_subtypes.output.cleaned_subtypes
+  output:
+    selected_sequences =  config['output_dir'] +'{name}/data/seqs/{protein}/seqs_selected.fasta'
+  params:
+    script_dir = config['script_dir']
+  log: config['output_dir'] +'{name}/data/seqs/{protein}/seqs_excluded.csv'
+  shell:
+    "Rscript {params.script_dir}/prep/sequence_data/select_sequences.R -f {input.sequences} -s {input.cleaned_subtypes} -o {output.selected_sequences} -l {log}"
+    
+# or use stored reference C sequence
+rule get_reference_sequence:
+  # define the output files
+  output:
+    # fasta file with the reference sequence of interest
+    refseq_file = temp(config['output_dir'] +'{name}/data/seqs/{protein}/ref_seq_C.fasta'),
+    # fasta file with the corresponding full alignment
+    # TODO: check if needed
+    alignment_file = temp(config['output_dir'] +'{name}/data/seqs/{protein}/ref_seq_alignment.fasta')
+  # set parameters that are fixed and not need to be generated beforehand
+  params:
+    alignment_type = config['ref_seq']['alignment_type'],
+    suborganism = config['ref_seq']['suborganism'],
+    subtype = config['ref_seq']['subtype'],
+    region_definition = config['ref_seq']['region_definition'],
+    region = lambda wildcards: config['ref_seq']['region'][wildcards.protein],
+    basetype = config['ref_seq']['basetype'],
+    year = config['ref_seq']['year'],
+    format = config['ref_seq']['format'],
+    query = config['ref_seq']['query'],
+    api_source = config["api"]['lanl_align'],
+    script_dir = config['script_dir']
+  shell:
+    "Rscript {params.script_dir}/prep/sequence_data/get_reference_sequence.R -a {output.alignment_file} -o {output.refseq_file} -t {params.alignment_type} -s {params.suborganism} --subtype {params.subtype} -d {params.region_definition} -r {params.region} -b {params.basetype} -y {params.year} -f {params.format} -q {params.query} --api_source {params.api_source}"
+
+## align all sequences
+rule align_seq:
+  input:
+    selected_sequences = rules.select_seq.output.selected_sequences,
+    reference_sequence = rules.get_reference_sequence.output.refseq_file
+  output:
+    alignment = temp(config['output_dir'] +'{name}/data/seqs/{protein}/nt_aligned.fasta')
+  params:
+    script_dir = config['script_dir']
+  shell:
+    "mafft --add {input.selected_sequences} --quiet {input.reference_sequence}  > {output.alignment}"
+
+## codon align all sequences
+rule codon_align:
+  input:
+    dna_alignment = rules.align_seq.output.alignment
+  params:
+    frame = config["codon_align"]["frame"],
+    compensating_num = config["codon_align"]["compensating_num"],
+    input_type = config["codon_align"]["input_type"],
+    output_format = config["codon_align"]["output_format"],
+    output_seqs_type = config["codon_align"]["output_seqs_type"],
+    protein = lambda wildcards: wildcards.protein,
+    output_dir = config['output_dir'] +'{name}/data/seqs/{protein}/',
+    api_source = config['api']['codon_align'],
+    script_dir = config['script_dir']
+  output:
+    codon_align_nt = config['output_dir'] +'{name}/data/seqs/{protein}/{protein}_nt_codonalign'+"."+ config["codon_align"]["output_format"], 
+    codon_align_aa = config['output_dir'] +'{name}/data/seqs/{protein}/{protein}_aa_codonalign' +"."+ config["codon_align"]["output_format"]
+  shell:
+    "Rscript {params.script_dir}/prep/sequence_data/get_codon_alignment.R -i {input.dna_alignment} -f {params.frame} -c {params.compensating_num} -t {params.input_type} --output_format {params.output_format} --output_seqs_type {params.output_seqs_type} -n {params.protein} --output_dir {params.output_dir} --api_source {params.api_source}"
+    
+rule remove_refseq:
+  input: rules.codon_align.output.codon_align_aa
+  output: config['output_dir'] +'{name}/data/seqs/{protein}/aa_codonalign_without_refseq.fasta'
+  params:
+    refseq_name=config['ref_seq']['query'],
+    script_dir = config['script_dir']
+  #log: 'logs/{protein}/remove_refseq.log'
+  shell: 
+    'Rscript {params.script_dir}/prep/sequence_data/remove_refseq.R -i {input} -o {output} -r {params.refseq_name}'
+  # Alternatively delete the fasta entry with the refseq_name using python, not checked
+  #run:
+#    from Bio import SeqIO
+#    with open(output[0],'w') as f:
+#      for seq in SeqIO.parse(input, 'fasta'):
+#        if seq.id != params.refseq_name:
+#          SeqIO.write(seq, f, "fasta")
+
+
+rule remove_gaps:
+  input: rules.remove_refseq.output
+  output: config['output_dir'] +'{name}/data/seqs/{protein}/aa_codonalign_without_refseq_without_gaps.fasta'
+  params:
+    script_dir = config['script_dir']
+  shell: 
+    'Rscript {params.script_dir}/prep/sequence_data/remove_gaps.R -i {input} -o {output}'
+
+rule align_test2train:
+  input:
+    train_seqs = config['train_seqs'],
+    test_seqs = rules.remove_refseq.output
+  output:
+    alignment = temp(config['output_dir'] +'{name}/data/seqs/{protein}/full_test2train_alignment.fasta')
+  params:
+    script_dir = config['script_dir']
+  shell:
+    "mafft --add {input.test_seqs} --quiet --keeplength {input.train_seqs}  > {output.alignment}"
+    
+rule remove_training_sequences:
+	input: 
+		alignment = rules.align_test2train.output.alignment,
+		test_seqs = rules.remove_refseq.output
+	output: config['output_dir'] +'{name}/data/seqs/{protein}/test2train_alignment.fasta'
+	params:
+		script_dir = config['script_dir']
+	shell:
+		"Rscript {params.script_dir}/predict/remove_training_seqs.R -i {input.alignment} -s {input.test_seqs} -o {output}"
+
+# HLA PREPROCESSING
+		
+rule convert_test_hla2binary: 
+  input: 
+    df  = config['input']['hla']
+  params:
+    script_dir = config['script_dir'],
+    hla = lambda wildcards: config['hla'][wildcards.model_version]
+  output:
+    temp(config['output_dir'] +'{name}/{protein}/{outcome_type}/{model_version}/test_bin.rds')
+  run:
+    hla = ",".join(params.hla)
+    exec = 'Rscript {params.script_dir}/eval/convert_test_hla2binary.R -i {input.df} --hla ' + hla + ' -o {output}'
+    shell(exec)
+
+# CLASSIFICATION
+rule classify:
+	input:
+		df = rules.convert_test_hla2binary.output,
+		fit = config['fit_dir'] + '{protein}/{outcome_type}/final_models/{model_version}/{sites}/saav_freq_{saav_cutoff}/hla_freq_{hla_cutoff}/cd4_cutoff{cd4}/seed_{seed}/{model}/fit_brms_phylo-raxml_seqtype-nt_glmm.rds'
+	output: 
+		temp(config['output_dir'] +'{name}/{protein}/{outcome_type}/{model_version}/{sites}/saav_freq_{saav_cutoff}/hla_freq_{hla_cutoff}/cd4_cutoff{cd4}/seed_{seed}/{model}/pred.csv')
+	params: 
+		script_dir = config['script_dir']
+	shell: 
+		'Rscript {params.script_dir}/eval/CV_classify_SAAV.R -t {input.df} -f {input.fit} -o {output} -p {wildcards.protein} --model {wildcards.model} --model_version {wildcards.model_version} -s {wildcards.sites} --seed {wildcards.seed}'
+
+# COLLECT TEMP PREDICTIONS
+rule collect_preds:
+  input: expand(rules.classify.output, protein = PROTEINS, cd4= CD4, model_version=MODEL_VERSIONS, outcome_type=OUTCOME_TYPE, name = NAME,saav_cutoff = SAAV_CUTOFF, hla_cutoff = HLA_CUTOFF, model = MODELS, seed = SEEDS, sites = pred_sites.sites)
+  params: 
+    script_dir = config['script_dir']
+  output: config['output_dir'] + '{name}/{protein}/{outcome_type}/{model_version}/saav_freq_{saav_cutoff}/hla_freq_{hla_cutoff}/cd4_cutoff{cd4}/seed_{seed}/pred.csv'
+  run:
+    print(input)
+    comb_df = pd.concat([pd.read_csv(f) for f in input ])
+    comb_df.to_csv(output[0],index = False, encoding='utf-8-sig')
+
+# COMPUTE ADAPTATION
+rule compute_adapt:
+	input: 
+		pred = rules.collect_preds.output, 
+		df = rules.remove_training_sequences.output,
+		ref_map = config['ref_map']
+	params:
+		script_dir = config['script_dir'],
+	output:
+		config['output_dir'] + '{name}/{protein}/{outcome_type}/{model_version}/saav_freq_{saav_cutoff}/hla_freq_{hla_cutoff}/cd4_cutoff{cd4}/seed_{seed}/adapt.csv'
+	run:
+		exec = "Rscript {params.script_dir}/eval/compute_adaptation_score_predict.R -i {input.pred} -s {input.df} -o {output} --outcome_type {wildcards.outcome_type} -r {input.ref_map}"
+		shell(exec)
+    

@@ -1,0 +1,69 @@
+# Global settings
+# TODO set name of prediction run
+name: 
+input:
+# TODO set path to hla file [rds]
+	hla: 
+# TODO set path to seq file [fasta]
+	seq: 
+pred_sites: 'models/{run_id}/{protein}/{outcome_type}/final_models/{model_version}_sites.csv'
+output_dir: 'output/predict/'
+fit_dir: 'models/'
+proteins: 
+- gag
+#- env
+notify: True
+#TODO set email address
+notify_email: 
+model_versions:
+- hlaboth_clin
+#- hla1_clin
+#- hla1
+#- hla2_clin
+outcome_type: 'categorical'
+script_dir: scripts
+hla_freq_cutoff: 
+- "0.01"
+saav_freq_cutoff: 
+- "0.01"
+cd4_cutoff: 
+- 500
+seed: 100
+models:
+- "null_clin_rand"
+- "full"
+hla:
+  hlaboth_clin:
+    - A.ACC.I
+    - A.ACC.II
+    - B.ACC.I
+    - B.ACC.II
+    - C.ACC.I
+    - C.ACC.II
+    - DRB.ACC.I
+    - DRB.ACC.II
+    - DQB.ACC.I
+    - DQB.ACC.II
+    - DPB.ACC.I
+    - DPB.ACC.II
+  hla1_clin:
+    - A.ACC.I
+    - A.ACC.II
+    - B.ACC.I
+    - B.ACC.II
+    - C.ACC.I
+    - C.ACC.II
+  hla1:
+    - A.ACC.I
+    - A.ACC.II
+    - B.ACC.I
+    - B.ACC.II
+    - C.ACC.I
+    - C.ACC.II
+  hla2_clin:
+    - DRB.ACC.I
+    - DRB.ACC.II
+    - DQB.ACC.I
+    - DQB.ACC.II
+    - DPB.ACC.I
+    - DPB.ACC.II
