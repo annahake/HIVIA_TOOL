@@ -3,12 +3,13 @@ This is the code basis for the paper 'Insights to HIV-1 coreceptor usage by esti
 Since HLA information is private sensitive data, which we are not allowed to publish, we can't publish the training HLA data nor the final models. 
 
 The code contains
-* a pipeline for learning HLA adaptation based on the p24 protein and the HLA I and II alleles, as well as clinical factors like age, sex, and ethnicity (
-* ```
-* ./Snakefile
-* ```)
+* a pipeline for learning HLA adaptation based on the p24 protein and the HLA I and II alleles, as well as clinical factors like age, sex, and ethnicity 
+```
+ ./Snakefile
+```
+ 
 * a prediction pipeline for predicting the HLA adaptation based on the HLA profile and the p24 sequence, as well as clinical factors. 
-(```
+```
 ./Snakefile_predict
 ```
 
