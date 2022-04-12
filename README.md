@@ -22,14 +22,17 @@ For each pipeline there is a corresponding config file:
 
 The conda environment is defined in the file 
 ```
+./envs/conda/HIVIA.yml
 ```
-The Snakemake environment is defined in the file
+The Snakemake environment is defined in the directory
 ```
+./envs/snakemake/
 ```
+There are different environments depending on the computational environment (GRID Engine, SLURM, cluster, etc. )
 
-The command to run the pipeline is as follows
+The command to run the pipeline (on a cluster) is as follows
 ```
-snakemake --config_files --profile 
+snakemake -n --configfile config.yml --profile envs/snakemake/[cluster] --nolock
 
 ```
 
