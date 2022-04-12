@@ -48,4 +48,23 @@ The file `./notebooks/HIVIA.R` contains the code to produce all figures and tabl
 
 
 ## Key idea
-The key elements of this project is to model 
+The key elements of this project is to compute the adaptation score of a viral sequence based on its HLA profile, age, sex, and ethnicity. 
+The adaptation score is computed as follows: 
+
+
+For each frequent variant site $s_i$, two Bayesian generalized linear mixed models are computed: 
+* HLA model
+** age
+** sex
+** ethnicity
+** phylogeny
+** HLA information (binarized)
+* baseline model
+** age
+** sex
+** ethnicity
+** phylogeny
+
+The modelling is performed with the script `./scripts/modeling/fit_glmm.R`
+The computation of the adaptation score is performed in the script `./scripts/eval/compute_adaptation.R`
+
