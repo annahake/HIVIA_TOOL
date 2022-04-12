@@ -65,7 +65,7 @@ For each frequent variant site s<sub>i</sub>, two Bayesian generalized linear mi
   + ethnicity
   + phylogeny
 
-The modelling is performed with the script `./scripts/modeling/fit_glmm.R`.
+The modeling is performed with the script `./scripts/modeling/fit_glmm.R`.
 The computation of the adaptation score is performed in the script `./scripts/eval/compute_adaptation.R.`
 The call for fitting the HLA model using Bayesian GLMM is the following: 
 ```
