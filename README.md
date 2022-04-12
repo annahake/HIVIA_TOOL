@@ -2,6 +2,7 @@
 This is the code basis for the paper 'Insights to HIV-1 coreceptor usage by estimating HLA adaptation using Bayesian generalized linear mixed models'. 
 Since HLA information is private sensitive data, which we are not allowed to publish, we can't publish the training HLA data nor the final models. 
 
+## Content
 The code contains
 * a pipeline for learning HLA adaptation based on the p24 protein and the HLA I and II alleles, as well as clinical factors like age, sex, and ethnicity 
 ```
@@ -36,3 +37,5 @@ snakemake -n --configfile config.yml --profile envs/snakemake/[cluster] --nolock
 
 ```
 The file `./notebooks/HIVIA.R` contains the code to produce all figures and tables and p-values in the paper. 
+
+## Key idea
