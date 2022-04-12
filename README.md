@@ -52,7 +52,7 @@ The key elements of this project is to compute the adaptation score of a viral s
 The adaptation score is computed as follows: 
 
 
-For each frequent variant site s<sup>i</sup>, two Bayesian generalized linear mixed models are computed: 
+For each frequent variant site s<sub>i</sub>, two Bayesian generalized linear mixed models are computed: 
 * HLA model
   + age
   + sex
