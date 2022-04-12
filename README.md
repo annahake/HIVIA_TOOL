@@ -66,8 +66,7 @@ For each frequent variant site s<sub>i</sub>, two Bayesian generalized linear mi
   + phylogeny
 
 The modelling is performed with the script `./scripts/modeling/fit_glmm.R`.
-The computation of the adaptation score is performed in the script `./scripts/eval/compute_adaptation.R.
+The computation of the adaptation score is performed in the script `./scripts/eval/compute_adaptation.R.`
 The call for fitting the Bayesian GLMM model is the following: 
-`fit<- brm(formula = 'y ~ HLA_allele_1 + ... + HLA_allele_i + ... HLA_allele_n + age + sex + ethnicity + (1|patient_id)', cov_ranef = list(patient_id = ape::vcv.phylo(tree)) , data = df, family = 'categorical', prior = c(set_prior('horseshoe(df = 1, par_ratio = 0.01)', class="b")), seed = 100, control = list(adapt_delta = 0.99))
-`
+`fit<- brm(formula = 'y ~ HLA_allele_1 + ... + HLA_allele_i + ... HLA_allele_n + age + sex + ethnicity + (1|patient_id)', cov_ranef = list(patient_id = ape::vcv.phylo(tree)) , data = df, family = 'categorical', prior = c(set_prior('horseshoe(df = 1, par_ratio = 0.01)', class="b")), seed = 100, control = list(adapt_delta = 0.99))`
 
