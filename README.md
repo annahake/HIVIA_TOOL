@@ -54,16 +54,16 @@ The adaptation score is computed as follows:
 
 For each frequent variant site $s_i$, two Bayesian generalized linear mixed models are computed: 
 * HLA model
-** age
-** sex
-** ethnicity
-** phylogeny
-** HLA information (binarized)
+ ** age
+ ** sex
+ ** ethnicity
+ ** phylogeny
+ ** HLA information (binarized)
 * baseline model
-** age
-** sex
-** ethnicity
-** phylogeny
+ ** age
+ ** sex
+ ** ethnicity
+ ** phylogeny
 
 The modelling is performed with the script `./scripts/modeling/fit_glmm.R`
 The computation of the adaptation score is performed in the script `./scripts/eval/compute_adaptation.R`
