@@ -6,8 +6,12 @@
 # define local rules which are not run on cluster
 localrules: clean_coreceptor_data, clean_clinical_data, collect_hla_alleles, clean_hla_table, fetch_sequences, clean_subtypes, select_seq, clean_alignment, remove_refseq, convert_fasta_to_phylip,get_aa_ref_seq, codon_align
 
+# TODO: 
+# - add back all rules regarding sequence preprocessing
+# - remove fetch seq from config
+# - add hla input in config and change input
 # PREPROCESSING
-
+# TODO: change input to coreceptor input given by config
 rule clean_coreceptor_data:
   input: rules.g2p_coreceptor.output
   output: "data/processed/coreceptor.csv"
