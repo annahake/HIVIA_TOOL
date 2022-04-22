@@ -6,14 +6,9 @@
 # define local rules which are not run on cluster
 localrules: clean_coreceptor_data, clean_clinical_data, collect_hla_alleles, clean_hla_table, fetch_sequences, clean_subtypes, select_seq, clean_alignment, remove_refseq, convert_fasta_to_phylip,get_aa_ref_seq, codon_align
 
-# TODO: 
-# - add back all rules regarding sequence preprocessing
-# - remove fetch seq from config
-# - add hla input in config and change input
 # PREPROCESSING
-# TODO: change input to coreceptor input given by config
 rule clean_coreceptor_data:
-  input: rules.g2p_coreceptor.output
+  input: config["data"]["interim"]["coreceptor"]
   output: "data/processed/coreceptor.csv"
   log: "logs/coreceptor/clean_coreceptor_data.log"
   params: 
@@ -21,12 +16,15 @@ rule clean_coreceptor_data:
   shell:
     "Rscript {params.script_dir}/prep/coreceptor_data/clean_coreceptor_data.R -i {input} -o {output} -l {log}"
 
-## subtype sequences with the comet tool
+## Note, that this is only needed once. We have already selected subtype C sequences.
+#subtype sequences with the comet tool
 rule subtype_sequences:
 	input:
-		sequences = 'data/interim/env'+str(config['fetch_seq']['consensus_cutoff'])+config['fetch_seq']['output_fname_suffix'] +config['fetch_seq']['output_fname_extension']
+		sequences = config["data"]["interim"]["env"]
+		#sequences = 'data/interim/env'+str(config['fetch_seq']['consensus_cutoff'])+config['fetch_seq']['output_fname_suffix'] +config['fetch_seq']['output_fname_extension']
 	output: 
-		subtypes = 'data/interim/env'+str(config['fetch_seq']['consensus_cutoff'])+config['fetch_seq']['output_fname_suffix']+config['subtype_seq']['output_fname_suffix'] +config['subtype_seq']['output_fname_extension']
+		subtypes = "data/interim/subtype_comet.tsv"
+		#subtypes = 'data/interim/env'+str(config['fetch_seq']['consensus_cutoff'])+config['fetch_seq']['output_fname_suffix']+config['subtype_seq']['output_fname_suffix'] +config['subtype_seq']['output_fname_extension']
 	params:
 		api=config['api']['comet'],
 		script_dir = config['script_dir']
@@ -38,38 +36,38 @@ rule clean_subtypes:
   input:
     subtypes = rules.subtype_sequences.output.subtypes
   output:
-    cleaned_subtypes = 'data/interim/env'+str(config['fetch_seq']['consensus_cutoff'])+config['fetch_seq']['output_fname_suffix']+config['subtype_seq']['output_fname_suffix'] +'_cleaned.csv'
+    cleaned_subtypes = 'data/interim/subtypes_cleaned.csv'
   params:
     script_dir = config['script_dir']
   shell:
     'Rscript {params.script_dir}/prep/sequence_data/clean_subtype_table.R -s {input.subtypes}'
 
-#TODO check if nmer tbl still needed
-rule select_seq:
-  input:
-    sequences = rules.select_seq_clin.output.sequences,
-    cleaned_subtypes = rules.clean_subtypes.output.cleaned_subtypes
-  output:
-    selected_sequences = 'data/interim/{protein}'+str(config['fetch_seq']['consensus_cutoff'])+config['fetch_seq']['output_fname_suffix'] + config['select_seq']['output_fname_suffix']+config['select_seq']['output_fname_extension'],
-    nmer_tbl='tables/{protein}_nmer_distribution.tex'
-  params:
-    script_dir = config['script_dir']
-  log: 'logs/excluded/{protein}/excluded.csv'
-  shell:
-    "Rscript {params.script_dir}/prep/sequence_data/select_sequences.R -f {input.sequences} -s {input.cleaned_subtypes} -o {output.selected_sequences} -l {log} -t {output.nmer_tbl}"
+##TODO check if nmer tbl still needed
+#rule select_seq:
+#  input:
+#    sequences = config["data"]["interim"][{protein}],
+#    cleaned_subtypes = rules.clean_subtypes.output.cleaned_subtypes
+#  output:
+#    selected_sequences = 'data/interim/{protein}_selected.fasta',
+#    nmer_tbl='tables/{protein}_nmer_distribution.tex'
+#  params:
+#    script_dir = config['script_dir']
+#  log: 'logs/excluded/{protein}/excluded.csv'
+##  shell:
+ #   "Rscript {params.script_dir}/prep/sequence_data/select_sequences.R -f {input.sequences} -s {input.cleaned_subtypes} -o {output.selected_sequences} -l {log} -t {output.nmer_tbl}"
 #invoked?
-rule select_seq_leftout:
-  input:
-    sequences = rules.select_seq_clin.output.leftout,
-    cleaned_subtypes = rules.clean_subtypes.output.cleaned_subtypes
-  output:
-    leftout_selected_seqs = 'data/interim/{protein}'+str(config['fetch_seq']['consensus_cutoff'])+config['fetch_seq']['output_fname_suffix'] + config['select_seq']['output_fname_suffix']+'_leftout_clinical'+config['select_seq']['output_fname_extension'],
-    #nmer_tbl='tables/{protein}_nmer_distribution.tex'
-  params:
-    script_dir = config['script_dir']
-  #log: 'logs/excluded/{protein}/excluded.csv'
-  shell:
-    "Rscript {params.script_dir}/prep/sequence_data/select_sequences.R -f {input.sequences} -s {input.cleaned_subtypes} -o {output.selected_sequences}"
+#rule select_seq_leftout:
+#  input:
+#    sequences = rules.select_seq_clin.output.leftout,
+#    cleaned_subtypes = rules.clean_subtypes.output.cleaned_subtypes
+#  output:
+#    leftout_selected_seqs = 'data/interim/{protein}'+str(config['fetch_seq']['consensus_cutoff'])+config['fetch_seq']['output_fname_suffix'] + config['select_seq']['output_fname_suffix']+'_leftout_clinical'+config['select_seq']['output_fname_extension'],
+#    #nmer_tbl='tables/{protein}_nmer_distribution.tex'
+#  params:
+#    script_dir = config['script_dir']
+#  #log: 'logs/excluded/{protein}/excluded.csv'
+#  shell:
+#    "Rscript {params.script_dir}/prep/sequence_data/select_sequences.R -f {input.sequences} -s {input.cleaned_subtypes} -o {output.selected_sequences}"
 ### SEPARATE HERE IN SPECIFIC AND GENERAL
 
 # get the subtype reference sequence from LANL NewAlign Tool
@@ -101,7 +99,8 @@ rule get_reference_sequence:
 ## align all sequences
 rule align_seq:
   input:
-    selected_sequences = rules.select_seq.output.selected_sequences,
+    #selected_sequences = rules.select_seq.output.selected_sequences,
+    selected_sequences = config["data"]["interim"][{protein}]
     reference_sequence = rules.get_reference_sequence.output.refseq_file
   output:
     alignment = temp('{run_id}/data/interim/{protein}'+str(config['fetch_seq']['consensus_cutoff'])+config['fetch_seq']['output_fname_suffix']+config['subtype_seq']['output_fname_suffix'] + config['select_seq']['output_fname_suffix']+config['align_seq']['output_fname_suffix'] + config['align_seq']['output_fname_extension'])
@@ -220,33 +219,34 @@ rule make_SAAV_table:
   shell:
     "Rscript {params.script_dir}/prep/sequence_data/make_SAAV_table.R -a {input.alignment} -r {input.ref_map} -d {wildcards.saav_cutoff} -o {output} --outcome_type {wildcards.outcome_type}" 
 
-# TODO coreceptor and clinical data should be deleted as it is not necessary
 checkpoint create_datasets:
   input:
-    hla = rules.clean_hla_table.output,
+    hla = config["data"]["processed"]["hla"],
     SAAV = rules.make_SAAV_table.output,
-    coreceptor = rules.clean_coreceptor_data.output, 
-    clinical = rules.clean_clinical_data.output
+    #coreceptor = rules.clean_coreceptor_data.output, 
+    #clinical = rules.clean_clinical_data.output
   params:
     dir = '{run_id}/data/processed/datasets/saav_freq_{saav_cutoff}/cd4_cutoff{cd4}/{protein}/{outcome_type}/{model_version}/', 
     script_dir = config["script_dir"]
   output: 
     directory('{run_id}/data/processed/datasets/saav_freq_{saav_cutoff}/cd4_cutoff{cd4}/{protein}/{outcome_type}/{model_version}/')
   shell: 
-     "Rscript {params.script_dir}/prep/create_datasets.R --hla {input.hla} -s {input.SAAV} --coreceptor {input.coreceptor} --clinical {input.clinical} -d {params.dir} --cd4_cutoff {wildcards.cd4}"
+     #"Rscript {params.script_dir}/prep/create_datasets.R --hla {input.hla} -s {input.SAAV} --coreceptor {input.coreceptor} --clinical {input.clinical} -d {params.dir} --cd4_cutoff {wildcards.cd4}"
+	"Rscript {params.script_dir}/prep/create_datasets.R --hla {input.hla} -s {input.SAAV}  -d {params.dir} --cd4_cutoff {wildcards.cd4}"
 
+#TODO remove clinical?
 rule create_random_dataset: 
   input:
-    hla = rules.clean_hla_table.output,
-    clinical = rules.clean_clinical_data.output
+    hla = config["data"]["processed"]["hla"],
+    #clinical = rules.clean_clinical_data.output
   params: 
     script_dir = config["script_dir"], 
     rand_nr = config['modeling']['rand_nr']
   output: 
     "{run_id}/data/processed/rand/seed_{seed}/cd4_cutoff{cd4}/df.rds"
   shell: 
-    "Rscript {params.script_dir}/prep/create_rand_dataset.R --hla {input.hla} -c {input.clinical} -s {wildcards.seed} --cd4_cutoff {wildcards.cd4} -o {output} --rand_nr {params.rand_nr}"
-      
+    #"Rscript {params.script_dir}/prep/create_rand_dataset.R --hla {input.hla} -c {input.clinical} -s {wildcards.seed} --cd4_cutoff {wildcards.cd4} -o {output} --rand_nr {params.rand_nr}"
+    "Rscript {params.script_dir}/prep/create_rand_dataset.R --hla {input.hla} -s {wildcards.seed} --cd4_cutoff {wildcards.cd4} -o {output} --rand_nr {params.rand_nr}"  
 
 rule select_variables:
   input: '{run_id}/data/processed/datasets/saav_freq_{saav_cutoff}/cd4_cutoff{cd4}/{protein}/{outcome_type}/{model_version}/{saav}/full_data/df.rds',
