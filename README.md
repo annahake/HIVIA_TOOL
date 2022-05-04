@@ -43,6 +43,7 @@ The command to run the pipeline (on a cluster) is as follows
 snakemake -n --configfile config.yml --profile envs/snakemake/[cluster] --nolock
 
 ```
+This is a dry run (option -n). Remove the option -n to execute the workflow. 
 ### Code for manuscript figures and tables
 The file `./notebooks/HIVIA.R` contains the code to produce all figures and tables and p-values in the paper. 
 
