@@ -48,6 +48,7 @@ download_codon_align<-function(dna_alignment, frame, compensating_num, input_typ
   
   # TODO: add log file for cookie, retrieved date, settings etc
   # set parameters of the form
+  print(dna_alignment)
   query_list = list(
   'frame' = frame,
   'compensatingNum' = compensating_num
@@ -89,6 +90,6 @@ download_codon_align<-function(dna_alignment, frame, compensating_num, input_typ
   # download for each frame option and each seq type
   last_form<-length(download_page_forms)
   #TODO: at the moment only output_seqs_type='all' is implemented
-  downloaded<-lapply(download_page_forms[2:last_form], download_alignment, output_format=output_format, output_dir=output_dir, id=id,lanl_url=lanl_url)
+  downloaded<-lapply(download_page_forms[1:last_form], download_alignment, output_format=output_format, output_dir=output_dir, id=id,lanl_url=lanl_url)
 }
 
