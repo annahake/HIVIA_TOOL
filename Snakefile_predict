@@ -43,9 +43,14 @@ HLA_CUTOFF = config["hla_freq_cutoff"]
 # seeds: 100, 42
 SEEDS = config["seed"]
 
+wildcard_constraints:
+  protein='('+'|'.join(PROTEINS)+')',
+  model='('+'|'.join(MODELS)+')',
+  model_version = '('+'|'.join(MODEL_VERSIONS)+')',
+  outcome_type = OUTCOME_TYPE
 
 # TODO: align sequences to training set?
-# NOTE: we don't align the test data to the training data but expect that test data is aligned to subtype C p24 protein. 
+# NOTE: since data is not public we don't align the test data to the training data but expect that test data is aligned to subtype C p24 protein. 
 
 # spreadsheet with the frequent variant sites
 pred_sites=pd.read_csv(config['pred_sites']).set_index("sites", drop=False)
@@ -194,8 +199,6 @@ rule remove_training_sequences:
 		script_dir = config['script_dir']
 	shell:
 		"Rscript {params.script_dir}/predict/remove_training_seqs.R -i {input.alignment} -s {input.test_seqs} -o {output}"
-
-# HLA PREPROCESSING
 		
 rule convert_test_hla2binary: 
   input: 
@@ -210,7 +213,7 @@ rule convert_test_hla2binary:
     exec = 'Rscript {params.script_dir}/eval/convert_test_hla2binary.R -i {input.df} --hla ' + hla + ' -o {output}'
     shell(exec)
 
-# CLASSIFICATION
+
 rule classify:
 	input:
 		df = rules.convert_test_hla2binary.output,
@@ -222,7 +225,7 @@ rule classify:
 	shell: 
 		'Rscript {params.script_dir}/eval/CV_classify_SAAV.R -t {input.df} -f {input.fit} -o {output} -p {wildcards.protein} --model {wildcards.model} --model_version {wildcards.model_version} -s {wildcards.sites} --seed {wildcards.seed}'
 
-# COLLECT TEMP PREDICTIONS
+
 rule collect_preds:
   input: expand(rules.classify.output, protein = PROTEINS, cd4= CD4, model_version=MODEL_VERSIONS, outcome_type=OUTCOME_TYPE, name = NAME,saav_cutoff = SAAV_CUTOFF, hla_cutoff = HLA_CUTOFF, model = MODELS, seed = SEEDS, sites = pred_sites.sites)
   params: 
@@ -233,14 +236,16 @@ rule collect_preds:
     comb_df = pd.concat([pd.read_csv(f) for f in input ])
     comb_df.to_csv(output[0],index = False, encoding='utf-8-sig')
 
-# COMPUTE ADAPTATION
+
 rule compute_adapt:
 	input: 
 		pred = rules.collect_preds.output, 
 		df = rules.remove_training_sequences.output,
 		ref_map = config['ref_map']
 	params:
-		script_dir = config['script_dir'],
+		script_dir = config['script_dir']#,
+		#min_prob = config['odd_score']['min_prob'],
+		#prob_diff = config['odd_score']['prob_diff']
 	output:
 		config['output_dir'] + '{name}/{protein}/{outcome_type}/{model_version}/saav_freq_{saav_cutoff}/hla_freq_{hla_cutoff}/cd4_cutoff{cd4}/seed_{seed}/adapt.csv'
 	run:
