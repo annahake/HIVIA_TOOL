@@ -78,9 +78,9 @@ build_glmm<-function(df, phylo, model, method, fixed, random, outcome, prior=NUL
   if (!method %in% valid_methods){
     stop(paste0("Unsupported 'method' option provided. Method must be one of the following: \n", paste(valid_methods, collapse="\n")))
   }
-  valid_priors = c(NULL, "weak1","weak2", "horseshoe")
-  if (!prior %in% valid_priors){
-    stop(paste0("Unsupported 'prior' option provided. Priors have to be one of the following:\n", paste(valid_priors, collapse="\n")))
+  valid_priors = c(NULL, "weak1","weak2", "horseshoe", "NULL")
+  if (!prior %in% valid_priors | is.null(prior)){
+    stop(paste0("Unsupported 'prior' option provided (", prior, ")", ". Priors have to be one of the following:\n", paste(valid_priors, collapse="\n")))
   }  
   # TODO: 
   # assert that dimension of tree/resulting covariance matrix is the same as random component. 
@@ -94,7 +94,7 @@ build_glmm<-function(df, phylo, model, method, fixed, random, outcome, prior=NUL
   ## get phylogenetic information 
   phylo_info <- get_phylogeny(tree=phylo, method=method)
   ## set priors if option prior is set
-  if (!is.null(fixed) && !is.null(prior)){
+  if (!is.null(fixed) && !is.null(prior) && prior != "NULL"){
 		priors <- setup_priors(prior_type=prior, par_ratio= par_ratio, method=method)
   } else {
     priors <- NULL
@@ -259,7 +259,12 @@ setup_priors<-function(prior_type,method, par_ratio){
   horseshoe={
     switch(method,
       brms={
-      	horseshoe_call =paste0('horseshoe(df = 1, par_ratio = ', par_ratio, ')')
+		if(!is.null(par_ratio) | par_ratio=="NULL"){
+			horseshoe_call =paste0('horseshoe(df = 1, par_ratio = ', par_ratio, ')')
+		} else {
+			horseshoe_call ='horseshoe(df = 1)'
+		}
+      	
         priors=c(set_prior(horseshoe_call, class="b"))
       }, 
       {stop("unknown prior for given method provided in setup_priors function")}
@@ -479,7 +484,7 @@ opt_parser<-OptionParser(option_list=option_list)
 # read arguments
 opt<-parse_args(opt_parser)
 # open log connection
-#opened_log<-try(sink(opt$log))
+sink(opt$log)
 #if(class(opened_log)="try_error"){
 #  stop("sink connection could not be opened")
 #}
@@ -515,7 +520,7 @@ mutate(!!outcome := factor(get(outcome)))
 
 ## SET ATTRIBUTES
 
-
+print(opt$par_ratio)
 switch(opt$model, 
   full = {
     # get all hla allele column names
@@ -555,4 +560,4 @@ if(!is.null(opt$fitted)){
 
 traceback()
 # close log
-#sink()
+sink()
