@@ -25,12 +25,18 @@ api:
   codon_align: "./scripts/prep/sequence_data/codon_align_api.R"
 # path to data storage
 data:
-# TODO add paths to raw data 
+# TODO for new data put here the raw data and add processing rules in prep pipeline
   raw:
     env:
     gag:
-  interim: data/interim/
-  processed: data/processed/
+  # TODO: add file path to the env and gag sequences 
+  interim:
+    env: data/interim/
+    gag: data/interim/
+    coreceptor: data/interim/
+  # TODO: add file path to the hla allele information
+  processed: 
+    hla: data/hla/
 files:
   excluded: 'output/log/excluded'
 # RULE SETTINGS:
@@ -69,8 +75,8 @@ ref_seq:
   align_fname: "lanl_align.fa"
 # settings for fetching all raw sequences using fetch_sequences.R
 #TODO change path to coreceptor input
-g2p_coreceptor:
-  input: 'data/interim/env10percent_consensus_nt_sequences_selected.fasta'
+#g2p_coreceptor:
+#  input: 'data/interim/env10percent_consensus_nt_sequences_selected.fasta'
 subtype_seq:
   output_fname_suffix: '_subtype'
   output_fname_extension: '.tsv'
