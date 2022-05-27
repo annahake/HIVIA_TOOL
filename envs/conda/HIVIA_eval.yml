@@ -19,9 +19,11 @@ dependencies:
   # correlation method for data frames with p-values
   - r-psych
   - r-brms
-  - r-emmeans
+  - r-emmeans   
   - r-tidybayes
   - r-sjstats
   - r-bayestestr
   - r-xlsx
   - r-optparse
+  #for weblogo creation
+  - weblogo
