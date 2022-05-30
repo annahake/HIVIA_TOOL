@@ -49,9 +49,6 @@ wildcard_constraints:
   model_version = '('+'|'.join(MODEL_VERSIONS)+')',
   outcome_type = OUTCOME_TYPE
 
-# TODO: align sequences to training set?
-# NOTE: since data is not public we don't align the test data to the training data but expect that test data is aligned to subtype C p24 protein. 
-
 # spreadsheet with the frequent variant sites
 pred_sites=pd.read_csv(config['pred_sites']).set_index("sites", drop=False)
 
@@ -81,7 +78,7 @@ rule clean_subtypes:
   params:
     script_dir = config['script_dir']
   shell:
-    'Rscript {params.script_dir}/prep/sequence_data/clean_subtype_table.R -s {input.subtypes}'
+    'Rscript {params.script_dir}/prep/sequence_data/clean_subtype_table.R -s {input.subtypes} -o {output.cleaned_subtypes}'
     
 # select only subtype C? give warning?
 rule select_seq:
