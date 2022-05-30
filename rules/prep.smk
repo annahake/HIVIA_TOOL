@@ -9,7 +9,7 @@ localrules: clean_coreceptor_data, clean_clinical_data, collect_hla_alleles, cle
 # PREPROCESSING
 rule clean_coreceptor_data:
   input: config["data"]["interim"]["coreceptor"]
-  output: "data/processed/coreceptor.csv"
+  output: "{run_id}/data/processed/coreceptor.csv"
   log: "logs/coreceptor/clean_coreceptor_data.log"
   params: 
     script_dir = config['script_dir']
@@ -23,7 +23,7 @@ rule subtype_sequences:
 		sequences = config["data"]["interim"]["env"]
 		#sequences = 'data/interim/env'+str(config['fetch_seq']['consensus_cutoff'])+config['fetch_seq']['output_fname_suffix'] +config['fetch_seq']['output_fname_extension']
 	output: 
-		subtypes = "data/interim/subtype_comet.tsv"
+		subtypes = "{run_id}/data/interim/subtype_comet.tsv"
 		#subtypes = 'data/interim/env'+str(config['fetch_seq']['consensus_cutoff'])+config['fetch_seq']['output_fname_suffix']+config['subtype_seq']['output_fname_suffix'] +config['subtype_seq']['output_fname_extension']
 	params:
 		api=config['api']['comet'],
@@ -36,11 +36,11 @@ rule clean_subtypes:
   input:
     subtypes = rules.subtype_sequences.output.subtypes
   output:
-    cleaned_subtypes = 'data/interim/subtypes_cleaned.csv'
+    cleaned_subtypes = '{run_id}/data/interim/env'+str(config['fetch_seq']['consensus_cutoff'])+config['fetch_seq']['output_fname_suffix']+config['subtype_seq']['output_fname_suffix'] +'_cleaned.csv'
   params:
     script_dir = config['script_dir']
   shell:
-    'Rscript {params.script_dir}/prep/sequence_data/clean_subtype_table.R -s {input.subtypes}'
+    'Rscript {params.script_dir}/prep/sequence_data/clean_subtype_table.R -s {input.subtypes} -o {output.cleaned_subtypes}'
 
 ##TODO check if nmer tbl still needed
 #rule select_seq:
