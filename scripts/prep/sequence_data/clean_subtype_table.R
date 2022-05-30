@@ -20,7 +20,9 @@ loaded_libraries<-lapply(required_packages, function(package){
 # ------------------------------------------------------------------------------
 # ARGUMENTS HANDLING
 option_list=list(
-  make_option(c("-s", "--subtype_table"), type="character", default=NULL, help="file with the subtypes from the COMET Tool", metavar="FILE")# TODO: Add comma if more than one option is used. 
+  make_option(c("-s", "--subtype_table"), type="character", default=NULL, help="file with the subtypes from the COMET Tool", metavar="FILE"),
+  make_option(c("-o", "--output"), type="character", default=NULL, help="A csv file with the cleaned subtypes from the COMET Tool", metavar="FILE")
+  # TODO: Add comma if more than one option is used. 
 )
 # ------------------------------------------------------------------------------
 # FUNCTIONS
@@ -121,4 +123,4 @@ subtype_df<-read.csv(opt$subtype_table, sep="\t", stringsAsFactors=F)
 # substitute commas within columns with /
 subtype_df<-lapply(subtype_df, gsub, pattern=',', replacement='|')
 # store table
-write.csv(data.frame(subtype_df), gsub('.tsv', '_cleaned.csv',opt$subtype_table), row.names=FALSE)
+write.csv(data.frame(subtype_df), file=opt$output, row.names=FALSE)
